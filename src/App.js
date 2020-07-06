@@ -1,26 +1,43 @@
+/** @jsx jsx */
+/* @jsxFrag React.Fragment */
+import { css, jsx, Global } from '@emotion/core';
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
 
-function App() {
+import { subDays } from 'date-fns';
+import normalize from 'normalize.css';
+
+import Calendar from './Calendar';
+
+export default function App() {
+  const [startDate, setStartDate] = React.useState(subDays(new Date(), 200));
+  const [endDate, setEndDate] = React.useState(new Date());
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <>
+      <Global
+        styles={css`
+          ${normalize}
+        `}
+      />
+      <div
+        style={{
+          display: 'flex',
+          direction: 'column',
+        }}
+      >
+        <div
+          style={{
+            marginLeft: 'auto',
+          }}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+          <Calendar
+            openSideDirectionLeft
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+          />
+        </div>
+      </div>
+    </>
   );
 }
-
-export default App;
