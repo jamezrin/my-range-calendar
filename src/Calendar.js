@@ -18,7 +18,9 @@ import {
   eachDayOfInterval,
   eachDay,
   getDay,
-  lightFormat,
+  startOfMonth,
+  endOfMonth,
+  addDays,
 } from 'date-fns';
 
 const mdashCharacter = '\u2014';
@@ -70,6 +72,42 @@ export default function Calendar({
       return j;
     });
   }, [weekStartDay]);
+
+  const calendarDates = React.useMemo(() => {
+    const monthStartDate = startOfMonth(selectedMonthDate);
+    const monthEndDate = endOfMonth(selectedMonthDate);
+    const firstMonthDay = getDay(monthStartDate);
+
+    const dates = [];
+
+    if (firstMonthDay > 1) {
+      for (let i = firstMonthDay - 1; i > 0; i--) {
+        dates.push(subDays(monthStartDate, i));
+      }
+    } else {
+      for (let i = 7; i > 0; i--) {
+        dates.push(subDays(monthStartDate, i));
+      }
+    }
+
+    dates.push(
+      ...eachDayOfInterval({
+        start: monthStartDate,
+        end: monthEndDate,
+      }),
+    );
+
+    if (dates.length < 42) {
+      dates.push(
+        ...eachDayOfInterval({
+          start: addDays(monthEndDate, 1),
+          end: addDays(monthEndDate, 42 - dates.length),
+        }),
+      );
+    }
+
+    return dates;
+  }, [selectedMonthDate]);
 
   return (
     <div
@@ -188,14 +226,13 @@ export default function Calendar({
                   <ul
                     css={css`
                       list-style-type: none;
+                      display: flex;
+                      flex-direction: row;
                     `}
                   >
-                    <li></li>
-                    <li></li>
-                    <li></li>
-                    <li></li>
-                    <li></li>
-                    <li></li>
+                    {calendarDates.map((calendarDate) => (
+                      <li>{getDate(calendarDate)}&nbsp;</li>
+                    ))}
                   </ul>
                 </div>
               </div>
