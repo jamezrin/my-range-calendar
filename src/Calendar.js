@@ -81,21 +81,13 @@ export default function Calendar({
     const dates = [];
 
     // Before the current month
-    if (firstMonthDay > 1) {
-      dates.push(
-        ...eachDayOfInterval({
-          start: subDays(monthStartDate, firstMonthDay - 1),
-          end: subDays(monthStartDate, 1),
-        }),
-      );
-    } else {
-      dates.push(
-        ...eachDayOfInterval({
-          start: subDays(monthStartDate, 7),
-          end: subDays(monthStartDate, 1),
-        }),
-      );
-    }
+    dates.push(
+      ...eachDayOfInterval({
+        // replaceable with firstMonth - 1 || 7, but maybe it's a bit hard
+        start: subDays(monthStartDate, firstMonthDay > 1 ? firstMonthDay - 1 : 7),
+        end: subDays(monthStartDate, 1),
+      }),
+    );
 
     // The current month dates
     dates.push(
@@ -106,6 +98,8 @@ export default function Calendar({
     );
 
     // After the current month, if there is space
+    // the number of weeks (6) is multiplied by the days
+    // that there are in a week (7), resulting in 42
     if (dates.length < 42) {
       dates.push(
         ...eachDayOfInterval({
@@ -117,6 +111,12 @@ export default function Calendar({
 
     return dates;
   }, [selectedMonthDate]);
+
+  const calendarDatesSplit = React.useMemo(() => {
+    return [...Array(6)].map((_, i) => {
+      return calendarDates.slice(i * 7, i * 7 + 7);
+    });
+  }, [calendarDates]);
 
   return (
     <div
@@ -227,7 +227,14 @@ export default function Calendar({
                   >
                     {weekDays.map((weekDay) => (
                       /* Month of a year that where monday is the first day */
-                      <li>{format(new Date(2020, 5, weekDay + 1), 'EEE')}</li>
+                      <li
+                        css={css`
+                          width: 35px;
+                          text-align: center;
+                        `}
+                      >
+                        {format(new Date(2020, 5, weekDay + 1), 'EEE')}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -235,12 +242,34 @@ export default function Calendar({
                   <ul
                     css={css`
                       list-style-type: none;
+                      padding: 0;
                       display: flex;
-                      flex-direction: row;
+                      flex-direction: column;
                     `}
                   >
-                    {calendarDates.map((calendarDate) => (
-                      <li>{getDate(calendarDate)}&nbsp;</li>
+                    {calendarDatesSplit.map((calendarDatesRow) => (
+                      <li>
+                        <ul
+                          css={css`
+                            list-style-type: none;
+                            padding: 0;
+                            display: flex;
+                            flex-direction: row;
+                            justify-content: space-evenly;
+                          `}
+                        >
+                          {calendarDatesRow.map((calendarDate) => (
+                            <li
+                              css={css`
+                                width: 35px;
+                                text-align: center;
+                              `}
+                            >
+                              {getDate(calendarDate)}
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
                     ))}
                   </ul>
                 </div>
