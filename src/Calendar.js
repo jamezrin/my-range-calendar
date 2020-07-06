@@ -80,16 +80,24 @@ export default function Calendar({
 
     const dates = [];
 
+    // Before the current month
     if (firstMonthDay > 1) {
-      for (let i = firstMonthDay - 1; i > 0; i--) {
-        dates.push(subDays(monthStartDate, i));
-      }
+      dates.push(
+        ...eachDayOfInterval({
+          start: subDays(monthStartDate, firstMonthDay - 1),
+          end: subDays(monthStartDate, 1),
+        }),
+      );
     } else {
-      for (let i = 7; i > 0; i--) {
-        dates.push(subDays(monthStartDate, i));
-      }
+      dates.push(
+        ...eachDayOfInterval({
+          start: subDays(monthStartDate, 7),
+          end: subDays(monthStartDate, 1),
+        }),
+      );
     }
 
+    // The current month dates
     dates.push(
       ...eachDayOfInterval({
         start: monthStartDate,
@@ -97,6 +105,7 @@ export default function Calendar({
       }),
     );
 
+    // After the current month, if there is space
     if (dates.length < 42) {
       dates.push(
         ...eachDayOfInterval({
