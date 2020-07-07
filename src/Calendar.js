@@ -22,6 +22,8 @@ import {
   isSameDay,
   isBefore,
   isAfter,
+  lastDayOfWeek,
+  startOfWeek,
 } from 'date-fns';
 import { isThisMonth } from 'date-fns/esm';
 
@@ -54,6 +56,7 @@ const DatePresetSelector = styled.button`
   cursor: pointer;
   background: none;
   border: none;
+  padding: 0;
 `;
 
 const DateSelector = styled.button`
@@ -64,6 +67,12 @@ const DateSelector = styled.button`
   background: #fff;
   border: 1px solid #e4e7ea;
 `;
+
+const convertWeekStartDay = (number) => {
+  const i = number + 1;
+  if (i === 7) return 0;
+  return i;
+};
 
 export default function Calendar({
   buttonTextFormatter = defaultButtonTextFormatter,
@@ -81,6 +90,7 @@ export default function Calendar({
   const [selectedDate, setSelectedDate] = React.useState();
   const [selectedMonthDate, setSelectedMonthDate] = React.useState(endDate);
   const [hoveringDate, setHoveringDate] = React.useState();
+  const [dateRangePreset, setDateRangePreset] = React.useState('custom');
 
   const buttonDisplayText = React.useMemo(() => buttonTextFormatter(startDate, endDate), [
     startDate,
@@ -88,8 +98,45 @@ export default function Calendar({
     buttonTextFormatter,
   ]);
 
+  React.useEffect(() => setDateRangePreset('custom'), [selectedDate]);
+
   const goPreviousMonth = () => setSelectedMonthDate(subMonths(selectedMonthDate, 1));
   const goNextMonth = () => setSelectedMonthDate(addMonths(selectedMonthDate, 1));
+
+  const selectCurrentWeek = () => {
+    const now = new Date();
+
+    setStartDate(
+      startOfWeek(now, {
+        weekStartsOn: convertWeekStartDay(weekStartDay),
+      }),
+    );
+    setEndDate(
+      lastDayOfWeek(now, {
+        weekStartsOn: convertWeekStartDay(weekStartDay),
+      }),
+    );
+    setDateRangePreset('current_week');
+  };
+
+  const selectLastSevenDays = () => {
+    const now = new Date();
+    setStartDate(subDays(now, 7));
+    setEndDate(now);
+    setDateRangePreset('last_seven_days');
+  };
+  const selectCurrentMonth = () => {
+    const now = new Date();
+    setStartDate(startOfMonth(now));
+    setEndDate(endOfMonth(now));
+    setDateRangePreset('current_month');
+  };
+  const selectLastThreeMonths = () => {
+    const now = new Date();
+    setStartDate(startOfMonth(subMonths(now, 3)));
+    setEndDate(endOfMonth(now));
+    setDateRangePreset('last_three_months');
+  };
 
   const calendarDayBorderRadius = (calendarDate) => {
     if (
@@ -305,6 +352,7 @@ export default function Calendar({
                 flex-basis: 30%;
                 display: flex;
                 flex-direction: column;
+                padding: 0 8px;
               `}
             >
               <ul
@@ -317,25 +365,55 @@ export default function Calendar({
                   justify-content: flex-end;
                 `}
               >
-                <li>start: {startDate ? format(startDate, 'dd/MM/yyyy') : 'none'}</li>
-                <li>end: {endDate ? format(endDate, 'dd/MM/yyyy') : 'none'}</li>
-                <li>selected: {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'none'}</li>
-                <li>hovering: {hoveringDate ? format(hoveringDate, 'dd/MM/yyyy') : 'none'}</li>
-
                 <li>
-                  <DatePresetSelector>Current week</DatePresetSelector>
+                  <DatePresetSelector
+                    css={css`
+                      color: ${dateRangePreset === 'current_week' ? '#2A69AC' : '#000'};
+                    `}
+                    onClick={selectCurrentWeek}
+                  >
+                    Current week
+                  </DatePresetSelector>
                 </li>
                 <li>
-                  <DatePresetSelector>Last 7 days</DatePresetSelector>
+                  <DatePresetSelector
+                    css={css`
+                      color: ${dateRangePreset === 'last_seven_days' ? '#2A69AC' : '#000'};
+                    `}
+                    onClick={selectLastSevenDays}
+                  >
+                    Last 7 days
+                  </DatePresetSelector>
                 </li>
                 <li>
-                  <DatePresetSelector>Current month</DatePresetSelector>
+                  <DatePresetSelector
+                    css={css`
+                      color: ${dateRangePreset === 'current_month' ? '#2A69AC' : '#000'};
+                    `}
+                    onClick={selectCurrentMonth}
+                  >
+                    Current month
+                  </DatePresetSelector>
                 </li>
                 <li>
-                  <DatePresetSelector>Last 3 months</DatePresetSelector>
+                  <DatePresetSelector
+                    css={css`
+                      color: ${dateRangePreset === 'last_three_months' ? '#2A69AC' : '#000'};
+                    `}
+                    onClick={selectLastThreeMonths}
+                  >
+                    Last 3 months
+                  </DatePresetSelector>
                 </li>
                 <li>
-                  <DatePresetSelector>Custom</DatePresetSelector>
+                  <p
+                    css={css`
+                      margin: 0;
+                      color: ${dateRangePreset === 'custom' ? '#2A69AC' : '#000'};
+                    `}
+                  >
+                    Custom
+                  </p>
                 </li>
               </ul>
             </div>
