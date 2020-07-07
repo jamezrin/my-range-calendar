@@ -87,7 +87,10 @@ export default function Calendar({
   const [visible, setVisible] = React.useState(localStorage.getItem('visible') === 'yes');
   React.useEffect(() => localStorage.setItem('visible', visible ? 'yes' : 'no'), [visible]);
 
-  const [selectedDate, setSelectedDate] = React.useState();
+  const [selectedStartDate, setSelectedStartDate] = React.useState();
+  const [selectedEndDate, setSelectedEndDate] = React.useState();
+  const hasDateSelected = selectedStartDate || selectedEndDate;
+
   const [selectedMonthDate, setSelectedMonthDate] = React.useState(endDate);
   const [hoveringDate, setHoveringDate] = React.useState();
   const [dateRangePreset, setDateRangePreset] = React.useState('custom');
@@ -98,7 +101,7 @@ export default function Calendar({
     buttonTextFormatter,
   ]);
 
-  React.useEffect(() => setDateRangePreset('custom'), [selectedDate]);
+  React.useEffect(() => setDateRangePreset('custom'), []);
 
   const goPreviousMonth = () => setSelectedMonthDate(subMonths(selectedMonthDate, 1));
   const goNextMonth = () => setSelectedMonthDate(addMonths(selectedMonthDate, 1));
