@@ -149,25 +149,25 @@ export default function Calendar({
 
   const calendarDayBorderRadius = (calendarDate) => {
     if (
-      (startDate && (!selectedDate || (selectedDate && !hoveringDate)) && isSameDay(calendarDate, startDate)) ||
-      (selectedDate && hoveringDate && isBefore(calendarDate, startDate) && isSameDay(calendarDate, hoveringDate)) ||
+      (startDate && (!hasDateSelected || (hasDateSelected && !hoveringDate)) && isSameDay(calendarDate, startDate)) ||
+      (hasDateSelected && hoveringDate && isBefore(calendarDate, startDate) && isSameDay(calendarDate, hoveringDate)) ||
       (!startDate &&
         !endDate &&
-        selectedDate &&
+        hasDateSelected &&
         hoveringDate &&
         isSameDay(calendarDate, hoveringDate) &&
-        isBefore(hoveringDate, selectedDate))
+        isBefore(hoveringDate, hasDateSelected))
     )
       return '50% 0 0 50%';
     if (
-      (endDate && (!selectedDate || (selectedDate && !hoveringDate)) && isSameDay(calendarDate, endDate)) ||
-      (selectedDate && hoveringDate && isAfter(calendarDate, endDate) && isSameDay(calendarDate, hoveringDate)) ||
+      (endDate && (!hasDateSelected || (hasDateSelected && !hoveringDate)) && isSameDay(calendarDate, endDate)) ||
+      (hasDateSelected && hoveringDate && isAfter(calendarDate, endDate) && isSameDay(calendarDate, hoveringDate)) ||
       (!startDate &&
         !endDate &&
-        selectedDate &&
+        hasDateSelected &&
         hoveringDate &&
         isSameDay(calendarDate, hoveringDate) &&
-        isAfter(hoveringDate, selectedDate))
+        isAfter(hoveringDate, hasDateSelected))
     )
       return '0 50% 50% 0';
     return 0;
@@ -182,11 +182,11 @@ export default function Calendar({
           start: startDate,
           end: endDate,
         })) ||
-      (selectedDate &&
+      (hasDateSelected &&
         hoveringDate &&
         isWithinInterval(currentDate, {
-          start: Math.min(selectedDate, hoveringDate),
-          end: Math.max(selectedDate, hoveringDate),
+          start: Math.min(hasDateSelected, hoveringDate),
+          end: Math.max(hasDateSelected, hoveringDate),
         }))
       ? '#EDF2F7'
       : '#FFF';
@@ -196,36 +196,63 @@ export default function Calendar({
     if (
       (startDate && isSameDay(currentDate, startDate)) ||
       (endDate && isSameDay(currentDate, endDate)) ||
-      (!startDate && !endDate && selectedDate && isSameDay(currentDate, selectedDate))
+      (!startDate && !endDate && hasDateSelected && isSameDay(currentDate, hasDateSelected))
     )
       return '#3182CE';
     return 'transparent';
   };
 
   const handleDayClick = (clickedDate) => {
-    if (startDate && endDate && hasDateSelected) {
-      if (isBefore(clickedDate, startDate)) {
-        setStartDate(clickedDate);
-      } else if (isAfter(clickedDate, endDate)) {
-        setEndDate(clickedDate);
-      } else if (isSameDay(startDate, selectedDate)) {
-        setStartDate(clickedDate);
-      } else if (isSameDay(endDate, selectedDate)) {
-        setEndDate(clickedDate);
+    if (startDate && endDate) {
+      if (isSameDay(startDate, clickedDate)) {
+        setSelectedStartDate(clickedDate);
+      } else if (isSameDay(endDate, clickedDate)) {
+        setSelectedEndDate(clickedDate);
+      } else if (selectedStartDate) {
+        if (isBefore(clickedDate, endDate)) {
+          setStartDate(clickedDate);
+          setSelectedStartDate(null);
+        } else {
+          setStartDate(endDate);
+          setEndDate(clickedDate);
+          setSelectedStartDate(null);
+        }
+      } else if (selectedEndDate) {
+        if (isAfter(clickedDate, startDate)) {
+          setEndDate(clickedDate);
+          setSelectedEndDate(null);
+        } else {
+          setEndDate(startDate);
+          setStartDate(clickedDate);
+          setSelectedEndDate(null);
+        }
+      } else {
+        setSelectedStartDate(clickedDate);
+        setSelectedEndDate(clickedDate);
+        setStartDate(null);
+        setEndDate(null);
       }
-
-      setSelectedStartDate(null);
-      setSelectedEndDate(null);
-    } else if (startDate && isSameDay(clickedDate, startDate)) {
-      setSelectedStartDate(clickedDate);
-    } else if (endDate && isSameDay(clickedDate, startDate)) {
-      setSelectedEndDate(clickedDate);
-    } else if (selectedStartDate) {
-      setStartDate(clickedDate);
-      setSelectedStartDate(null);
-    } else if (selectedEndDate) {
-      setEndDate(clickedDate);
-      setSelectedEndDate(null);
+    } else {
+      if (startDate && isSameDay(clickedDate, startDate)) {
+        setSelectedStartDate(clickedDate);
+      } else if (endDate && isSameDay(clickedDate, endDate)) {
+        setSelectedEndDate(clickedDate);
+      } else if (!selectedStartDate && !selectedEndDate) {
+        setSelectedStartDate(clickedDate);
+        setSelectedEndDate(clickedDate);
+      } else if (isSameDay(selectedStartDate, selectedEndDate)) {
+        if (isBefore(clickedDate, selectedStartDate)) {
+          setStartDate(clickedDate);
+          setEndDate(selectedEndDate);
+          setSelectedStartDate(null);
+          setSelectedEndDate(null);
+        } else if (isAfter(clickedDate, selectedEndDate)) {
+          setEndDate(clickedDate);
+          setStartDate(selectedStartDate);
+          setSelectedStartDate(null);
+          setSelectedEndDate(null);
+        }
+      }
     }
   };
 
@@ -304,6 +331,11 @@ export default function Calendar({
           ${openSideDirectionLeft ? 'right' : 'left'}: 0;
         `}
       >
+        <p css={{ margin: 0 }}>start date: {safeFormat(startDate, 'dd/MM/yyyy')}</p>
+        <p css={{ margin: 0 }}>end date: {safeFormat(endDate, 'dd/MM/yyyy')}</p>
+        <p css={{ margin: 0 }}>select start date: {safeFormat(selectedStartDate, 'dd/MM/yyyy')}</p>
+        <p css={{ margin: 0 }}>select end date: {safeFormat(selectedEndDate, 'dd/MM/yyyy')}</p>
+        <p css={{ margin: 0 }}>hovering date: {safeFormat(hoveringDate, 'dd/MM/yyyy')}</p>
         <div
           css={css`
             width: 400px;
@@ -519,7 +551,7 @@ export default function Calendar({
                                 `}
                                 onClick={() => handleDayClick(calendarDate)}
                                 /* only set hovering date if there is a date selected for better performance */
-                                onMouseEnter={() => selectedDate && setHoveringDate(calendarDate)}
+                                onMouseEnter={() => hasDateSelected && setHoveringDate(calendarDate)}
                                 onMouseLeave={() => hoveringDate && setHoveringDate(null)}
                               >
                                 {getDate(calendarDate)}
