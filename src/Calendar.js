@@ -331,11 +331,6 @@ export default function Calendar({
           ${openSideDirectionLeft ? 'right' : 'left'}: 0;
         `}
       >
-        <p css={{ margin: 0 }}>start date: {safeFormat(startDate, 'dd/MM/yyyy')}</p>
-        <p css={{ margin: 0 }}>end date: {safeFormat(endDate, 'dd/MM/yyyy')}</p>
-        <p css={{ margin: 0 }}>select start date: {safeFormat(selectedStartDate, 'dd/MM/yyyy')}</p>
-        <p css={{ margin: 0 }}>select end date: {safeFormat(selectedEndDate, 'dd/MM/yyyy')}</p>
-        <p css={{ margin: 0 }}>hovering date: {safeFormat(hoveringDate, 'dd/MM/yyyy')}</p>
         <div
           css={css`
             width: 400px;
