@@ -89,7 +89,11 @@ export default function Calendar({
 
   const [selectedStartDate, setSelectedStartDate] = React.useState();
   const [selectedEndDate, setSelectedEndDate] = React.useState();
-  const hasDateSelected = selectedStartDate || selectedEndDate;
+
+  const hasDateSelected = React.useMemo(() => selectedStartDate || selectedEndDate, [
+    selectedStartDate,
+    selectedEndDate,
+  ]);
 
   const [selectedMonthDate, setSelectedMonthDate] = React.useState(endDate);
   const [hoveringDate, setHoveringDate] = React.useState();
@@ -128,12 +132,14 @@ export default function Calendar({
     setEndDate(now);
     setDateRangePreset('last_seven_days');
   };
+
   const selectCurrentMonth = () => {
     const now = new Date();
     setStartDate(startOfMonth(now));
     setEndDate(endOfMonth(now));
     setDateRangePreset('current_month');
   };
+
   const selectLastThreeMonths = () => {
     const now = new Date();
     setStartDate(startOfMonth(subMonths(now, 3)));
@@ -197,7 +203,7 @@ export default function Calendar({
   };
 
   const handleDayClick = (clickedDate) => {
-    if (selectedDate && startDate && endDate) {
+    if (startDate && endDate && hasDateSelected) {
       if (isBefore(clickedDate, startDate)) {
         setStartDate(clickedDate);
       } else if (isAfter(clickedDate, endDate)) {
@@ -208,19 +214,18 @@ export default function Calendar({
         setEndDate(clickedDate);
       }
 
-      setSelectedDate(null);
-    } else {
-      if ((startDate && isSameDay(clickedDate, startDate)) || (endDate && isSameDay(clickedDate, endDate))) {
-        setSelectedDate(clickedDate);
-      } else if (selectedDate) {
-        setStartDate(Math.min(selectedDate, clickedDate));
-        setEndDate(Math.max(selectedDate, clickedDate));
-        setSelectedDate(null);
-      } else {
-        setSelectedDate(clickedDate);
-        setStartDate(null);
-        setEndDate(null);
-      }
+      setSelectedStartDate(null);
+      setSelectedEndDate(null);
+    } else if (startDate && isSameDay(clickedDate, startDate)) {
+      setSelectedStartDate(clickedDate);
+    } else if (endDate && isSameDay(clickedDate, startDate)) {
+      setSelectedEndDate(clickedDate);
+    } else if (selectedStartDate) {
+      setStartDate(clickedDate);
+      setSelectedStartDate(null);
+    } else if (selectedEndDate) {
+      setEndDate(clickedDate);
+      setSelectedEndDate(null);
     }
   };
 
