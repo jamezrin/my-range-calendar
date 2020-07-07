@@ -6,11 +6,17 @@ import React from 'react';
 import { subDays } from 'date-fns';
 import normalize from 'normalize.css';
 
-import Calendar from './Calendar';
+import Calendar, { WEEK_START_MONDAY, WEEK_START_SUNDAY } from './Calendar';
 
 export default function App() {
-  const [startDate, setStartDate] = React.useState(subDays(new Date(), 200));
+  const [startDate, setStartDate] = React.useState(subDays(new Date(), 20));
   const [endDate, setEndDate] = React.useState(new Date());
+
+  React.useEffect(() => {
+    setStartDate(null);
+    setEndDate(null);
+  }, []);
+
   return (
     <>
       <Global
@@ -19,18 +25,19 @@ export default function App() {
         `}
       />
       <div
-        style={{
+        css={{
           display: 'flex',
-          direction: 'column',
+          flexDirection: 'column',
         }}
       >
         <div
-          style={{
+          css={{
             marginLeft: 'auto',
           }}
         >
           <Calendar
             openSideDirectionLeft
+            weekStartDay={WEEK_START_MONDAY}
             startDate={startDate}
             setStartDate={setStartDate}
             endDate={endDate}

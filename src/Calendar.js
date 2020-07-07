@@ -1,6 +1,7 @@
 /** @jsx jsx */
 /* @jsxFrag React.Fragment */
 import { css, jsx } from '@emotion/core';
+import styled from '@emotion/styled';
 import React from 'react';
 
 import {
@@ -10,54 +11,76 @@ import {
   isSameMonth,
   getDate,
   isThisYear,
-  getMonth,
-  getYear,
   subMonths,
   addMonths,
-  getDaysInMonth,
   eachDayOfInterval,
-  eachDay,
   getDay,
   startOfMonth,
   endOfMonth,
   addDays,
+  isWithinInterval,
+  isSameDay,
+  isBefore,
+  isAfter,
 } from 'date-fns';
+import { isThisMonth } from 'date-fns/esm';
 
 const mdashCharacter = '\u2014';
+const calendarWeeks = 6;
+const daysInWeek = 7;
+
+export const WEEK_START_MONDAY = 0,
+  WEEK_START_SUNDAY = 6;
+
+const safeFormat = (date, pattern, ...options) => {
+  if (!date) return 'None';
+  return format(date, pattern, ...options);
+};
 
 const defaultButtonTextFormatter = (startDate, endDate) => {
   if (!isSameYear(startDate, endDate)) {
     if (!isThisYear(endDate)) {
-      return format(startDate, 'MMM dd, yyyy') + ` ${mdashCharacter} ` + format(endDate, 'MMM dd, yyyy');
+      return safeFormat(startDate, 'MMM dd, yyyy') + ` ${mdashCharacter} ` + safeFormat(endDate, 'MMM dd, yyyy');
     }
-
-    return format(startDate, 'MMM dd, yyyy') + ` ${mdashCharacter} ` + format(endDate, 'MMM dd');
+    return safeFormat(startDate, 'MMM dd, yyyy') + ` ${mdashCharacter} ` + safeFormat(endDate, 'MMM dd');
   }
-
   if (!isSameMonth(startDate, endDate)) {
-    return format(startDate, 'MMM dd') + ` ${mdashCharacter} ` + format(endDate, 'MMM dd');
+    return safeFormat(startDate, 'MMM dd') + ` ${mdashCharacter} ` + safeFormat(endDate, 'MMM dd');
   }
-
-  return format(startDate, 'MMM dd') + ` ${mdashCharacter} ` + getDate(endDate);
+  return safeFormat(startDate, 'MMM dd') + ` ${mdashCharacter} ` + endDate ? getDate(endDate) : 'None';
 };
+
+const DatePresetSelector = styled.button`
+  cursor: pointer;
+  background: none;
+  border: none;
+`;
+
+const DateSelector = styled.button`
+  cursor: pointer;
+  border-radius: 100%;
+  width: 35px;
+  height: 35px;
+  background: #fff;
+  border: 1px solid #e4e7ea;
+`;
 
 export default function Calendar({
   buttonTextFormatter = defaultButtonTextFormatter,
   openSideDirectionLeft = false,
-  weekStartDay = 0,
+  weekStartDay = WEEK_START_MONDAY,
   startDate,
   setStartDate,
   endDate,
   setEndDate,
 }) {
+  // save in localStorage to improve development experience
   const [visible, setVisible] = React.useState(localStorage.getItem('visible') === 'yes');
-
-  React.useEffect(() => {
-    localStorage.setItem('visible', visible ? 'yes' : 'no');
-  }, [visible]);
+  React.useEffect(() => localStorage.setItem('visible', visible ? 'yes' : 'no'), [visible]);
 
   const [selectedDate, setSelectedDate] = React.useState();
   const [selectedMonthDate, setSelectedMonthDate] = React.useState(endDate);
+  const [hoveringDate, setHoveringDate] = React.useState();
 
   const buttonDisplayText = React.useMemo(() => buttonTextFormatter(startDate, endDate), [
     startDate,
@@ -65,10 +88,96 @@ export default function Calendar({
     buttonTextFormatter,
   ]);
 
+  const goPreviousMonth = () => setSelectedMonthDate(subMonths(selectedMonthDate, 1));
+  const goNextMonth = () => setSelectedMonthDate(addMonths(selectedMonthDate, 1));
+
+  const calendarDayBorderRadius = (calendarDate) => {
+    if (
+      (startDate && (!selectedDate || (selectedDate && !hoveringDate)) && isSameDay(calendarDate, startDate)) ||
+      (selectedDate && hoveringDate && isBefore(calendarDate, startDate) && isSameDay(calendarDate, hoveringDate)) ||
+      (!startDate &&
+        !endDate &&
+        selectedDate &&
+        hoveringDate &&
+        isSameDay(calendarDate, hoveringDate) &&
+        isBefore(hoveringDate, selectedDate))
+    )
+      return '50% 0 0 50%';
+    if (
+      (endDate && (!selectedDate || (selectedDate && !hoveringDate)) && isSameDay(calendarDate, endDate)) ||
+      (selectedDate && hoveringDate && isAfter(calendarDate, endDate) && isSameDay(calendarDate, hoveringDate)) ||
+      (!startDate &&
+        !endDate &&
+        selectedDate &&
+        hoveringDate &&
+        isSameDay(calendarDate, hoveringDate) &&
+        isAfter(hoveringDate, selectedDate))
+    )
+      return '0 50% 50% 0';
+    return 0;
+  };
+
+  const calendarDayBackground = (currentDate) => {
+    return (startDate && isSameDay(currentDate, startDate)) ||
+      (endDate && isSameDay(currentDate, endDate)) ||
+      (startDate &&
+        endDate &&
+        isWithinInterval(currentDate, {
+          start: startDate,
+          end: endDate,
+        })) ||
+      (selectedDate &&
+        hoveringDate &&
+        isWithinInterval(currentDate, {
+          start: Math.min(selectedDate, hoveringDate),
+          end: Math.max(selectedDate, hoveringDate),
+        }))
+      ? '#EDF2F7'
+      : '#FFF';
+  };
+
+  const calendarDayColor = (currentDate) => {
+    if (
+      (startDate && isSameDay(currentDate, startDate)) ||
+      (endDate && isSameDay(currentDate, endDate)) ||
+      (!startDate && !endDate && selectedDate && isSameDay(currentDate, selectedDate))
+    )
+      return '#3182CE';
+    return 'transparent';
+  };
+
+  const handleDayClick = (clickedDate) => {
+    if (selectedDate && startDate && endDate) {
+      if (isBefore(clickedDate, startDate)) {
+        setStartDate(clickedDate);
+      } else if (isAfter(clickedDate, endDate)) {
+        setEndDate(clickedDate);
+      } else if (isSameDay(startDate, selectedDate)) {
+        setStartDate(clickedDate);
+      } else if (isSameDay(endDate, selectedDate)) {
+        setEndDate(clickedDate);
+      }
+
+      setSelectedDate(null);
+    } else {
+      if ((startDate && isSameDay(clickedDate, startDate)) || (endDate && isSameDay(clickedDate, endDate))) {
+        setSelectedDate(clickedDate);
+      } else if (selectedDate) {
+        setStartDate(Math.min(selectedDate, clickedDate));
+        setEndDate(Math.max(selectedDate, clickedDate));
+        setSelectedDate(null);
+      } else {
+        setSelectedDate(clickedDate);
+        setStartDate(null);
+        setEndDate(null);
+      }
+    }
+  };
+
   const weekDays = React.useMemo(() => {
-    return [...Array(7)].map((_, i) => {
+    return [...Array(daysInWeek)].map((_, i) => {
       const j = i + weekStartDay;
-      if (j >= 7) return j - 7;
+      if (j >= daysInWeek) return j - daysInWeek;
       return j;
     });
   }, [weekStartDay]);
@@ -83,8 +192,11 @@ export default function Calendar({
     // Before the current month
     dates.push(
       ...eachDayOfInterval({
-        // replaceable with firstMonth - 1 || 7, but maybe it's a bit hard
-        start: subDays(monthStartDate, firstMonthDay > 1 ? firstMonthDay - 1 : 7),
+        start: subDays(
+          monthStartDate,
+          (firstMonthDay % daysInWeek > 1 ? firstMonthDay - 1 : daysInWeek) +
+            (weekStartDay !== 0 ? daysInWeek - weekStartDay : 0),
+        ),
         end: subDays(monthStartDate, 1),
       }),
     );
@@ -100,23 +212,19 @@ export default function Calendar({
     // After the current month, if there is space
     // the number of weeks (6) is multiplied by the days
     // that there are in a week (7), resulting in 42
-    if (dates.length < 42) {
+    if (dates.length < daysInWeek * calendarWeeks) {
       dates.push(
         ...eachDayOfInterval({
           start: addDays(monthEndDate, 1),
-          end: addDays(monthEndDate, 42 - dates.length),
+          end: addDays(monthEndDate, daysInWeek * calendarWeeks - dates.length),
         }),
       );
     }
 
-    return dates;
-  }, [selectedMonthDate]);
-
-  const calendarDatesSplit = React.useMemo(() => {
-    return [...Array(6)].map((_, i) => {
-      return calendarDates.slice(i * 7, i * 7 + 7);
+    return [...Array(calendarWeeks)].map((_, i) => {
+      return dates.slice(i * daysInWeek, i * daysInWeek + daysInWeek);
     });
-  }, [calendarDates]);
+  }, [selectedMonthDate, weekStartDay]);
 
   return (
     <div
@@ -145,7 +253,9 @@ export default function Calendar({
           css={css`
             width: 400px;
             height: 400px;
-            background: #ababab;
+            box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
+            background: #fff;
+            border-radius: 3px;
             display: flex;
             flex-direction: column;
           `}
@@ -155,28 +265,44 @@ export default function Calendar({
               display: flex;
               flex-direction: row;
               justify-content: space-between;
+              margin: 0.75em 0;
             `}
           >
-            <button css={css``} onClick={() => setSelectedMonthDate(subMonths(selectedMonthDate, 1))}>
+            <DateSelector
+              css={css`
+                margin-left: 3em;
+              `}
+              onClick={goPreviousMonth}
+            >
               &larr;
-            </button>
-            <div css={css``}>{format(selectedMonthDate, 'MMMM yyyy')}</div>
-            <button css={css``} onClick={() => setSelectedMonthDate(addMonths(selectedMonthDate, 1))}>
+            </DateSelector>
+            <div
+              css={css`
+                align-self: center;
+                font-size: 1.25em;
+              `}
+            >
+              {format(selectedMonthDate, 'MMMM yyyy')}
+            </div>
+            <DateSelector
+              css={css`
+                margin-right: 3em;
+              `}
+              onClick={goNextMonth}
+            >
               &rarr;
-            </button>
+            </DateSelector>
           </div>
           <div
             css={css`
               display: flex;
               flex-direction: row;
               flex-grow: 1;
-              padding: 8px;
             `}
           >
             <div
               css={css`
                 flex-basis: 30%;
-                background: #a7a7a7;
                 display: flex;
                 flex-direction: column;
               `}
@@ -191,64 +317,88 @@ export default function Calendar({
                   justify-content: flex-end;
                 `}
               >
+                <li>start: {startDate ? format(startDate, 'dd/MM/yyyy') : 'none'}</li>
+                <li>end: {endDate ? format(endDate, 'dd/MM/yyyy') : 'none'}</li>
+                <li>selected: {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : 'none'}</li>
+                <li>hovering: {hoveringDate ? format(hoveringDate, 'dd/MM/yyyy') : 'none'}</li>
+
                 <li>
-                  <button>Current week</button>
+                  <DatePresetSelector>Current week</DatePresetSelector>
                 </li>
                 <li>
-                  <button>Last 7 days</button>
+                  <DatePresetSelector>Last 7 days</DatePresetSelector>
                 </li>
                 <li>
-                  <button>Current month</button>
+                  <DatePresetSelector>Current month</DatePresetSelector>
                 </li>
                 <li>
-                  <button>Last 3 months</button>
+                  <DatePresetSelector>Last 3 months</DatePresetSelector>
                 </li>
                 <li>
-                  <button>Custom</button>
+                  <DatePresetSelector>Custom</DatePresetSelector>
                 </li>
               </ul>
             </div>
             <div
               css={css`
                 flex-basis: 70%;
-                background: #a0a0a0;
+
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
               `}
             >
-              <div>
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                  flex-grow: 1;
+                `}
+              >
                 <div>
                   <ul
                     css={css`
-                      list-style-type: none;
                       padding: 0;
+                      list-style-type: none;
                       display: flex;
                       flex-direction: row;
                       justify-content: space-evenly;
                     `}
                   >
-                    {weekDays.map((weekDay) => (
-                      /* Month of a year that where monday is the first day */
+                    {weekDays.map((weekDay, weekDayIndex) => (
                       <li
+                        key={`calendar-header-${weekDayIndex}`}
                         css={css`
-                          width: 35px;
+                          width: 40px;
                           text-align: center;
                         `}
                       >
+                        {/* Month of a year that where monday is the first day */}
                         {format(new Date(2020, 5, weekDay + 1), 'EEE')}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div>
+                <div
+                  css={css`
+                    display: flex;
+                    flex-direction: column;
+                    flex-grow: 1;
+                  `}
+                >
                   <ul
                     css={css`
+                      flex-grow: 1;
                       list-style-type: none;
                       padding: 0;
+                      margin: 0;
                       display: flex;
                       flex-direction: column;
+                      justify-content: space-around;
                     `}
                   >
-                    {calendarDatesSplit.map((calendarDatesRow) => (
-                      <li>
+                    {calendarDates.map((calendarDatesRow, rowIndex) => (
+                      <li key={`calendar-row-${rowIndex}`}>
                         <ul
                           css={css`
                             list-style-type: none;
@@ -258,14 +408,36 @@ export default function Calendar({
                             justify-content: space-evenly;
                           `}
                         >
-                          {calendarDatesRow.map((calendarDate) => (
+                          {calendarDatesRow.map((calendarDate, dateIndex) => (
                             <li
+                              key={`calendar-date-${rowIndex}-${dateIndex}`}
                               css={css`
-                                width: 35px;
+                                height: 40px;
+                                width: 40px;
+                                flex-grow: 1;
                                 text-align: center;
+                                background: ${calendarDayBackground(calendarDate)};
+                                border-radius: ${calendarDayBorderRadius(calendarDate)};
                               `}
                             >
-                              {getDate(calendarDate)}
+                              <button
+                                css={css`
+                                  cursor: pointer;
+                                  width: 100%;
+                                  height: 100%;
+                                  margin: 0;
+                                  padding: 0;
+                                  border: none;
+                                  border-radius: 100%;
+                                  background: ${calendarDayColor(calendarDate)};
+                                `}
+                                onClick={() => handleDayClick(calendarDate)}
+                                /* only set hovering date if there is a date selected for better performance */
+                                onMouseEnter={() => selectedDate && setHoveringDate(calendarDate)}
+                                onMouseLeave={() => hoveringDate && setHoveringDate(null)}
+                              >
+                                {getDate(calendarDate)}
+                              </button>
                             </li>
                           ))}
                         </ul>
