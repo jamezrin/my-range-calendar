@@ -49,7 +49,7 @@ const defaultButtonTextFormatter = (startDate, endDate) => {
   if (!isSameMonth(startDate, endDate)) {
     return safeFormat(startDate, 'MMM dd') + ` ${mdashCharacter} ` + safeFormat(endDate, 'MMM dd');
   }
-  return safeFormat(startDate, 'MMM dd') + ` ${mdashCharacter} ` + endDate ? getDate(endDate) : 'None';
+  return safeFormat(startDate, 'MMM dd') + ` ${mdashCharacter} ` + (endDate ? getDate(endDate) : 'None');
 };
 
 const DatePresetSelector = styled.button`
@@ -105,7 +105,7 @@ export default function Calendar({
     buttonTextFormatter,
   ]);
 
-  React.useEffect(() => setDateRangePreset('custom'), []);
+  React.useEffect(() => setDateRangePreset('custom'), [hasDateSelected]);
 
   const goPreviousMonth = () => setSelectedMonthDate(subMonths(selectedMonthDate, 1));
   const goNextMonth = () => setSelectedMonthDate(addMonths(selectedMonthDate, 1));
